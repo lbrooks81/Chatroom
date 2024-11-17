@@ -1,4 +1,4 @@
-const socket = new WebSocket("ws://localhost:3000");
+const socket = new WebSocket("ws://localhost:3000/");
 
 socket.addEventListener('open', () =>
 {
@@ -11,7 +11,9 @@ socket.addEventListener('error', (error) =>
 
 socket.addEventListener('message', (event) =>
 {
-    const data = JSON.parse(event.data);
+
+    const data = event.data;
+    console.log(data);
     const chatDisplay = document.getElementById('chatbox');
     const message = document.createElement('tr');
     message.textContent = data;

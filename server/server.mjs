@@ -13,21 +13,29 @@ const server = app.listen(PORT, () =>
 
 //* Attaches a WebSocketServer to the HTTP server
 const wss = new WebSocketServer({server});
-
-//* Receive request from client to set their username
 const clients = new Map();
 wss.on('connection', (ws) =>
 {
     const id = count++;
     clients.set(id, ws);
+
     ws.send('Welcome to the chat! Use /nick <name> to set a nickname.');
 
-    ws.on('message', (message) =>
+    for (let client in clients)
     {
-        console.log('Message received');
+        console.log(client.get(id));
+    }
+
+    ws.on('message', (msg) =>
+    {
+        const message = String(msg);
+
+        console.log(`Message received: ${message}`);
 
         const user = clients.get(id);
+
         //* Force user to enter nickname before proceeding
+        // TODO this line should only run once, on the user's first message after their nickname is set
         broadcastMessage(`${user.nickname} has connected to the chat`, ws);
 
         //* Command handling
@@ -39,6 +47,7 @@ wss.on('connection', (ws) =>
         //* Broadcast message
         const nickname = user.nickname;
         const fullMessage = `${nickname}: ${message}`;
+
         broadcastMessage(fullMessage, ws);
 
     });
@@ -66,9 +75,22 @@ function handleCommand(user, message, ws)
 {
     if (message.startsWith('/nick'))
     {
-        const nickname = message.split(' '[1]);
-        clients.set(user.id, { ws, nickname });
-        ws.send(`Nickname set to ${nickname}`);
+        // TODO remove welcome message
+
+        const nickname = message.split(' ')[1];
+
+        //* User entered a valid name
+        if (!!nickname)
+        {
+            // TODO this isn't actually setting the client's id
+            clients.set(user.id, { ws, nickname });
+            ws.send(`Nickname set to ${nickname}`);
+        }
+        else
+        {
+            // TODO remove this message after a user enters a message after this is sent
+            ws.send('Please enter /nick followed by your nickname')
+        }
     }
 
     if (message.startsWith('/list'))
@@ -98,10 +120,13 @@ function handleCommand(user, message, ws)
 
 function broadcastMessage(message, ws)
 {
+    console.log(`Message received: ${message}`);
+
     for (let client in clients)
     {
         if (client.ws !== ws)
         {
+            console.log(client);
             client.ws.send(message);
         }
     }
