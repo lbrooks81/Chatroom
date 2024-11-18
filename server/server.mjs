@@ -18,13 +18,7 @@ wss.on('connection', (ws) =>
 {
     const id = count++;
     clients.set(id, ws);
-
     ws.send('Welcome to the chat! Use /nick <name> to set a nickname.');
-
-    for (let client in clients)
-    {
-        console.log(client.get(id));
-    }
 
     ws.on('message', (msg) =>
     {
@@ -36,25 +30,26 @@ wss.on('connection', (ws) =>
 
         //* Force user to enter nickname before proceeding
         // TODO this line should only run once, on the user's first message after their nickname is set
-        broadcastMessage(`${user.nickname} has connected to the chat`, ws);
+        // broadcastMessage(`${user.nickname} has connected to the chat`, ws);
 
         //* Command handling
         if (message.startsWith('/'))
         {
             handleCommand(user, message, ws);
         }
-
         //* Broadcast message
-        const nickname = user.nickname;
-        const fullMessage = `${nickname}: ${message}`;
+        else
+        {
+            // TODO prevent user from entering messages until they set a nickname
+            const nickname = clients.get(user.id).nickname;
+            const fullMessage = `${nickname}: ${message}`;
 
-        broadcastMessage(fullMessage, ws);
-
+            broadcastMessage(fullMessage, ws);
+        }
     });
 
     ws.on('close', () =>
     {
-
         const nickname = clients.get(id).nickname;
         const fullMessage = `${nickname} has disconnected.`;
 
@@ -82,8 +77,7 @@ function handleCommand(user, message, ws)
         //* User entered a valid name
         if (!!nickname)
         {
-            // TODO this isn't actually setting the client's id
-            clients.set(user.id, { ws, nickname });
+            clients.set(user.id, { ws: ws, nickname: nickname });
             ws.send(`Nickname set to ${nickname}`);
         }
         else
@@ -91,25 +85,29 @@ function handleCommand(user, message, ws)
             // TODO remove this message after a user enters a message after this is sent
             ws.send('Please enter /nick followed by your nickname')
         }
+        return;
     }
 
     if (message.startsWith('/list'))
     {
         for (let client in clients)
         {
-            user.ws.send(`${client.nickname}`);
+            ws.send(`${client.nickname}`);
         }
+        return;
     }
 
     if (message.startsWith('/me'))
     {
         const action = message.split(' '[1]);
         broadcastMessage(`${user.nickname} ${action}`)
+        return;
     }
 
     if (message.startsWith('/help'))
     {
-        user.ws.send(
+        // TODO prettify
+        ws.send(
             `/nick <name> - Changes your nickname
                  /list - Prints all connected users
                  /me <action> - Lets you perform an action in the third person. For example,
@@ -122,12 +120,13 @@ function broadcastMessage(message, ws)
 {
     console.log(`Message received: ${message}`);
 
-    for (let client in clients)
+    for (const [key, value] of clients)
     {
-        if (client.ws !== ws)
+        console.log(value.nickname);
+        // TODO this isn't sending data to the client
+        if (value.ws !== ws)
         {
-            console.log(client);
-            client.ws.send(message);
+            value.ws.send(message);
         }
     }
 }
