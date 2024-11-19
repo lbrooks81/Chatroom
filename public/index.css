@@ -1,1 +1,17 @@
 @import "/node_modules/bootstrap/dist/css/bootstrap.min.css";
+
+.resizable
+{
+    resize: both;
+    overflow: auto;
+    width: 25%;
+    min-width: 150px;
+    min-height: 125px;
+    max-width: 40vw;
+    max-height: 150%;
+}
+
+.chatdiv
+{
+
+}

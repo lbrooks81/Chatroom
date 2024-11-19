@@ -1,5 +1,3 @@
-import {sanitizeHtml} from "bootstrap/js/src/util/sanitizer.js";
-
 const socket = new WebSocket("ws://localhost:3000/");
 
 socket.addEventListener('open', () =>

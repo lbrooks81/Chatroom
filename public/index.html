@@ -6,22 +6,23 @@
     <link href="index.css" rel="stylesheet">
 </head>
 <body>
-    <form id="name-form" hidden>
-        <label class="input-group" for="username-input">Enter a username</label>
-        <input class="form-control w-25" id="username-input">
-        <button id="submit-btn" type="submit">Submit</button>
-    </form>
 
-    <div id="chat">
-        <table id="chatbox">
+    <main class="d-inline-flex">
+        <div class="d-flex resizable position-relative">
+            <div class="chatdiv" id="chat">
+                <table id="chatbox">
 
-        </table>
-        <form id="message">
-            <input class="input-group" id="message-input" placeholder="Enter a message">
-            <button class="btn btn-primary" id="send-btn" type="submit">Send Message</button>
-        </form>
+                </table>
+                <form id="message">
+                    <input class="input-group" id="message-input" placeholder="Enter a message">
+                    <button class="btn btn-primary" id="send-btn" type="submit">Send Message</button>
+                </form>
+            </div>
+        </div>
+        <img src="chairly.png">
 
-    </div>
-    <script src="index.mjs" type="module"></script>
+    </main>
+
+<script src="index.mjs" type="module"></script>
 </body>
 </html>

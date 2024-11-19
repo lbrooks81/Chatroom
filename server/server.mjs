@@ -50,11 +50,13 @@ wss.on('connection', (ws) =>
 
     ws.on('close', () =>
     {
-        const fullMessage = `${clients.get(id).nickname} has disconnected`;
-        broadcastMessage(fullMessage);
-
+        if (clients.get(id).nickname)
+        {
+            const fullMessage = `${clients.get(id).nickname} has disconnected`;
+            broadcastMessage(fullMessage);
+        }
         clients.delete(id);
-    })
+    });
 
 });
 
@@ -92,8 +94,8 @@ function handleCommand(user, id, message, ws)
             {
                 ws.send(`${value.nickname}`);
             }
-            return;
         }
+        return;
     }
 
     if (message.startsWith('/me'))
@@ -111,6 +113,35 @@ function handleCommand(user, id, message, ws)
         ws.send('/list - Prints all connected users');
         ws.send('/me (action) - Performs an action in the third person. \n');
         ws.send('/help - Displays a list of available commands');
+        ws.send('/msg (name) (message) - Directly messages another user')
+        return;
+    }
+
+    if (message.startsWith('/msg'))
+    {
+        const name = message.split(' ')[1];
+
+        //* Cuts off the /msg and nickname parts of the message
+        let msg = message.slice(message.indexOf(' ') + 1, message.length);
+        msg = msg.slice(msg.indexOf(' ') + 1, msg.length);
+
+        for (let [key, value] of clients)
+        {
+            //* User messaged themself (they are crazy)
+            if(name === clients.get(id).nickname)
+            {
+                ws.send(msg + ', you whisper to yourself');
+                break;
+            }
+
+            if (value.nickname === name)
+            {
+                value.ws.send(`${clients.get(id).nickname} whispers: ` + msg);
+                ws.send(`You whisper to ${name}: ` + msg);
+            }
+        }
+
+
     }
 }
 
