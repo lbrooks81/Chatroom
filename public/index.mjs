@@ -22,15 +22,21 @@ socket.addEventListener('message', (event) =>
     chatDisplay.appendChild(message);
 });
 
+
+
 document.addEventListener('DOMContentLoaded', () =>
 {
-    document.getElementById('send-btn')
-        .addEventListener('click', sendMessage);
-});
+    document.getElementById('message')
+        .addEventListener('submit', (event) =>
+        {
+            event.preventDefault();
+            const message = document.getElementById('message-input');
+            socket.send(message.value);
+            message.value = '';
+        });
 
-function sendMessage()
-{
-    const message = document.getElementById('message-input');
-    socket.send(message.value);
-    message.value = '';
-}
+    window.addEventListener('close', () =>
+    {
+        socket.close();
+    })
+});

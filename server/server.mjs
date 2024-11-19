@@ -14,71 +14,62 @@ const server = app.listen(PORT, () =>
 //* Attaches a WebSocketServer to the HTTP server
 const wss = new WebSocketServer({server});
 const clients = new Map();
+console.log(clients.size);
 wss.on('connection', (ws) =>
 {
     const id = count++;
-    clients.set(id, ws);
-    ws.send('Welcome to the chat! Use /nick <name> to set a nickname.');
+    clients.set(id, {nickname: "", ws: ws});
+    const user = clients.get(id);
+
+    console.log('New user connected');
+    ws.send('Welcome to the chat! Use /nick (name) to set a nickname.');
+
 
     ws.on('message', (msg) =>
     {
         const message = String(msg);
-
         console.log(`Message received: ${message}`);
-
-        const user = clients.get(id);
-
-        //* Force user to enter nickname before proceeding
-        // TODO this line should only run once, on the user's first message after their nickname is set
-        // broadcastMessage(`${user.nickname} has connected to the chat`, ws);
 
         //* Command handling
         if (message.startsWith('/'))
         {
-            handleCommand(user, message, ws);
+            handleCommand(user, id, message, ws);
+        }
+        //* Prevents users from typing before a nickname is set
+        else if (!clients.get(id).nickname)
+        {
+            ws.send("Please enter a nickname before sending messages.");
         }
         //* Broadcast message
         else
         {
-            // TODO prevent user from entering messages until they set a nickname
-            const nickname = clients.get(user.id).nickname;
-            const fullMessage = `${nickname}: ${message}`;
-
+            const fullMessage = `${clients.get(id).nickname}: ${message}`;
             broadcastMessage(fullMessage, ws);
         }
     });
 
     ws.on('close', () =>
     {
-        const nickname = clients.get(id).nickname;
-        const fullMessage = `${nickname} has disconnected.`;
-
-        for (let client in clients)
-        {
-            if (client.ws !== ws)
-            {
-                client.ws.send(fullMessage);
-            }
-        }
+        const fullMessage = `${clients.get(id).nickname} has disconnected`;
+        broadcastMessage(fullMessage);
 
         clients.delete(id);
     })
 
 });
 
-function handleCommand(user, message, ws)
+function handleCommand(user, id, message, ws)
 {
     if (message.startsWith('/nick'))
     {
-        // TODO remove welcome message
-
         const nickname = message.split(' ')[1];
-
         //* User entered a valid name
         if (!!nickname)
         {
-            clients.set(user.id, { ws: ws, nickname: nickname });
+            clients.set(id, { nickname: nickname, ws: ws });
+
             ws.send(`Nickname set to ${nickname}`);
+            broadcastMessage(`${nickname} has connected to the chat`, ws);
         }
         else
         {
@@ -90,29 +81,36 @@ function handleCommand(user, message, ws)
 
     if (message.startsWith('/list'))
     {
-        for (let client in clients)
+        if (clients.size === 1)
         {
-            ws.send(`${client.nickname}`);
+            ws.send('There\'s one current chatter. It\'s you!');
         }
-        return;
+        else
+        {
+            ws.send(`There are ${clients.size} current chatters:`)
+            for (let [key, value] of clients)
+            {
+                ws.send(`${value.nickname}`);
+            }
+            return;
+        }
     }
 
     if (message.startsWith('/me'))
     {
-        const action = message.split(' '[1]);
-        broadcastMessage(`${user.nickname} ${action}`)
+        const action = message.split(' ')[1];
+        console.log(action);
+        broadcastMessage(`${clients.get(id).nickname} ${action}`)
         return;
     }
 
     if (message.startsWith('/help'))
     {
-        // TODO prettify
-        ws.send(
-            `/nick <name> - Changes your nickname
-                 /list - Prints all connected users
-                 /me <action> - Lets you perform an action in the third person. For example,
-                 /me laughs would display as \"<name> laughs\" in the chat.
-                 /help - Displays a list of available commands.`);
+        ws.send('Available commands:');
+        ws.send('/nick (name) - Changes your nickname');
+        ws.send('/list - Prints all connected users');
+        ws.send('/me (action) - Performs an action in the third person. \n');
+        ws.send('/help - Displays a list of available commands');
     }
 }
 
@@ -122,11 +120,6 @@ function broadcastMessage(message, ws)
 
     for (const [key, value] of clients)
     {
-        console.log(value.nickname);
-        // TODO this isn't sending data to the client
-        if (value.ws !== ws)
-        {
-            value.ws.send(message);
-        }
+        value.ws.send(message);
     }
 }
