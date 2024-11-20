@@ -11,7 +11,6 @@ socket.addEventListener('error', (error) =>
 
 socket.addEventListener('message', (event) =>
 {
-
     const data = event.data;
     console.log(data);
     const chatDisplay = document.getElementById('chatbox');
@@ -19,8 +18,6 @@ socket.addEventListener('message', (event) =>
     message.textContent = data;
     chatDisplay.appendChild(message);
 });
-
-
 
 document.addEventListener('DOMContentLoaded', () =>
 {
