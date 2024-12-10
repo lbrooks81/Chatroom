@@ -3,30 +3,37 @@ import { WebSocketServer } from 'ws';
 
 const app = express();
 const PORT = 3000;
-let count = 0;
 
-//* Starts the server instance
+
+//// Server Instance Startup
 const server = app.listen(PORT, () =>
 {
     console.log(`Server is listening on http://localhost:${PORT}`);
 });
 
-//* Attaches a WebSocketServer to the HTTP server
+//// Attach a WebSocketServer to the HTTP server
 const wss = new WebSocketServer({server});
+
+//// Client Map Initialization
 const clients = new Map();
-console.log(clients.size);
+let count = 0;
+
+//// Handle User Connection
 wss.on('connection', (ws) =>
 {
+    //// Create new user instance
     const id = count++;
     clients.set(id, {nickname: "", ws: ws});
     const user = clients.get(id);
 
+    //// User Connection Message
     console.log('New user connected');
     ws.send('Welcome to the chat! Use /nick (name) to set a nickname.');
 
-
+    //// Handle Message Sending
     ws.on('message', (msg) =>
     {
+        //* Message Reception
         const message = String(msg);
         console.log(`Message received: ${message}`);
 
@@ -35,11 +42,13 @@ wss.on('connection', (ws) =>
         {
             handleCommand(user, id, message, ws);
         }
+
         //* Prevents users from typing before a nickname is set
         else if (!clients.get(id).nickname)
         {
             ws.send("Please enter a nickname before sending messages.");
         }
+
         //* Broadcast message
         else
         {
@@ -48,23 +57,27 @@ wss.on('connection', (ws) =>
         }
     });
 
+    //* Handle Disconnection
     ws.on('close', () =>
     {
+        //* Broadcast User Disconnection if Name is Set
         if (clients.get(id).nickname)
         {
             const fullMessage = `${clients.get(id).nickname} has disconnected`;
             broadcastMessage(fullMessage);
         }
+
         clients.delete(id);
     });
-
 });
 
 function handleCommand(user, id, message, ws)
 {
+    //// Set User Nickname
     if (message.startsWith('/nick'))
     {
         const nickname = message.split(' ')[1];
+
         //* User entered a valid name
         if (!!nickname)
         {
@@ -75,13 +88,12 @@ function handleCommand(user, id, message, ws)
         }
         else
         {
-            // TODO remove this message after a user enters a message after this is sent
             ws.send('Please enter /nick followed by your nickname')
         }
-        return;
     }
 
-    if (message.startsWith('/list'))
+    //// List Connected Users
+    else if (message.startsWith('/list'))
     {
         if (clients.size === 1)
         {
@@ -95,10 +107,10 @@ function handleCommand(user, id, message, ws)
                 ws.send(`${value.nickname}`);
             }
         }
-        return;
     }
 
-    if (message.startsWith('/me'))
+    //// Perform an Action in the Third Person
+    else if (message.startsWith('/me'))
     {
         const action = message.split(' ')[1];
         console.log(action);
@@ -106,7 +118,36 @@ function handleCommand(user, id, message, ws)
         return;
     }
 
-    if (message.startsWith('/help'))
+    //// Directly Message Users
+    else if (message.startsWith('/msg'))
+    {
+        //* Get Target Username
+        const name = message.split(' ')[1];
+
+        //* Cuts off the /msg and nickname parts of the message
+        let msg = message.slice(message.indexOf(' ') + 1, message.length);
+        msg = msg.slice(msg.indexOf(' ') + 1, msg.length);
+
+        //* User messaged themselves (they are crazy)
+        if(name === clients.get(id).nickname)
+        {
+            ws.send(msg + ', you whisper to yourself');
+        }
+
+        //* Send Message to Targeted User
+        for (let [key, value] of clients)
+        {
+            if (value.nickname === name)
+            {
+                value.ws.send(`${clients.get(id).nickname} whispers: ` + msg);
+                ws.send(`You whisper to ${name}: ` + msg);
+                break;
+            }
+        }
+    }
+
+    //// List Available Commands
+    else if (message.startsWith('/help'))
     {
         ws.send('Available commands:');
         ws.send('/nick (name) - Changes your nickname');
@@ -114,34 +155,6 @@ function handleCommand(user, id, message, ws)
         ws.send('/me (action) - Performs an action in the third person. \n');
         ws.send('/help - Displays a list of available commands');
         ws.send('/msg (name) (message) - Directly messages another user')
-        return;
-    }
-
-    if (message.startsWith('/msg'))
-    {
-        const name = message.split(' ')[1];
-
-        //* Cuts off the /msg and nickname parts of the message
-        let msg = message.slice(message.indexOf(' ') + 1, message.length);
-        msg = msg.slice(msg.indexOf(' ') + 1, msg.length);
-
-        for (let [key, value] of clients)
-        {
-            //* User messaged themself (they are crazy)
-            if(name === clients.get(id).nickname)
-            {
-                ws.send(msg + ', you whisper to yourself');
-                break;
-            }
-
-            if (value.nickname === name)
-            {
-                value.ws.send(`${clients.get(id).nickname} whispers: ` + msg);
-                ws.send(`You whisper to ${name}: ` + msg);
-            }
-        }
-
-
     }
 }
 

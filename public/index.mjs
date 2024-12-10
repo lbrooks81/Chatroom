@@ -1,26 +1,36 @@
 const socket = new WebSocket("ws://localhost:3000/");
 
+
+//// Websocket Connection Response Message
 socket.addEventListener('open', () =>
 {
     console.log('Connected to WebSocket server');
 });
+
+//// Websocket Error Message
 socket.addEventListener('error', (error) =>
 {
     console.error('WebSocket error: ', error);
 });
 
+//// Handle message receiving
 socket.addEventListener('message', (event) =>
 {
+    //* Fetch response
     const data = event.data;
-    console.log(data);
-    const chatDisplay = document.getElementById('chatbox');
+
+    //* Create message element
     const message = document.createElement('tr');
     message.textContent = data;
-    chatDisplay.appendChild(message);
+
+    //* Display message element
+    document.getElementById('chatbox')
+        .appendChild(message);
 });
 
 document.addEventListener('DOMContentLoaded', () =>
 {
+    //// Handle message sending
     document.getElementById('message')
         .addEventListener('submit', (event) =>
         {
@@ -30,8 +40,9 @@ document.addEventListener('DOMContentLoaded', () =>
             message.value = '';
         });
 
+    //// Close socket on window closure
     window.addEventListener('close', () =>
     {
         socket.close();
-    })
+    });
 });
